@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/cogarvey/tinyapp/issues"
   },
-  "homepage": "https://github.com/cogarvey/tinyapp#readme"
+  "homepage": "https://github.com/cogarvey/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
 }
