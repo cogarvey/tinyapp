@@ -4,8 +4,11 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 
 const bodyParser = require("body-parser");
+const res = require("express/lib/response");
 app.use(bodyParser.urlencoded({extended: true}));
 
+const cookieParser = require('cookie-parser');
+app.use(cookieParser())
 
 
 const urlDatabase = {
@@ -27,7 +30,9 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { 
+    urls: urlDatabase, 
+    username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
 
@@ -38,12 +43,17 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {  
+    username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL
-  const templateVars = { shortURL: shortURL, longURL: urlDatabase[shortURL] };
+  const templateVars = { 
+    shortURL: shortURL, 
+    longURL: urlDatabase[shortURL], 
+    username: req.cookies["username"] };
   res.render("urls_show", templateVars);
 });
 
@@ -57,10 +67,33 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect('/urls')
 });
 
+app.post("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
+  // console.log(urlDatabase);
+  urlDatabase[shortURL] = longURL;
+  // console.log(urlDatabase);
+  const templateVars = { 
+    shortURL: shortURL, 
+    longURL: urlDatabase[shortURL], 
+    username: req.cookies["username"] };
+  res.render("urls_show", templateVars);
+})
+
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username);
+  res.redirect('/urls')
+})
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username", req.body.username);
+  res.redirect('/urls')
+})
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-function generateRandomString(length = 6) {
-  return Math.random().toString(20).substring(2, length);
+function generateRandomString() {
+  return Math.random().toString(36).substring(7);
 };
