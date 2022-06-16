@@ -71,15 +71,21 @@ app.get("/urls.json", (req, res) => {
 
 
 app.get("/urls", (req, res) => {
-  let userURLs = urlsForUser(req.cookies.user_id);
-  if (!req.cookies.user_id) {
-    return res.status(400).send("You must be logged in to access");
+  let user_id = req.cookies.user_id;
+  if (!user_id) {
+    const templateVars = {
+      status: 401,
+      message: "No user logged in",
+      user: null
+    };
+    return res.status(401).render("urls_error", templateVars);
   } else {
+    let userURLs = urlsForUser(user_id)
     const templateVars = {
       user: users[req.cookies.user_id],
       urls: userURLs
     };
-    res.render("urls_index", templateVars);
+    return res.render("urls_index", templateVars);
   }
 });
 
@@ -101,9 +107,15 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let userURLs = urlsForUser(req.cookies.user_id);
-  if (!req.cookies.user_id) {
-    return res.status(400).send("You must be logged in to access");
+
+  let user_id = req.cookies.user_id;
+  if (!user_id) {
+    const templateVars = {
+      status: 400,
+      message: "Must be logged in to access",
+      user: null
+    };
+    return res.status(401).render("urls_error", templateVars);
   } else {
     const shortURL = req.params.shortURL;
     const templateVars = {
@@ -127,10 +139,16 @@ app.get('/u/:shortURL', (req, res) => {
 
 // DELETE URLS
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect('/urls');
+  const shortURL = req.params.shortURL;
+  if (req.cookies.user_id === urlDatabase[shortURL].userID) {
+    delete urlDatabase[req.params.shortURL];
+    return res.redirect('/urls');
+  } else {
+    return res.status(401).send(`You do not have access to ${shortURL}.`);
+  }
 });
 
+//SHORT URL PAGE
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = req.body.longURL;
