@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
 const res = require("express/lib/response");
 const req = require("express/lib/request");
+const bcrypt = require('bcryptjs');
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -25,16 +26,20 @@ const users = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync("password", 10)
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync("password", 10)
   }
 };
 
+// user 1
+// password: "purple-monkey-dinosaur"
 
+// user 2
+// password: "dishwasher-funk"
 
 function generateRandomString() {
   return Math.random().toString(36).substring(7);
@@ -167,15 +172,23 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-
+  const { email, password } = req.body;
   const user = getUserByEmail(email);
   if (!user) {
-    return res.status(403).send("User does not exist");
+    const templateVars = {
+      status: 401,
+      message: "Invalid Email",
+      user: users[req.cookies.user_id]
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
-  if (user.password !== password) {
-    return res.status(403).send("Invalid Password");
+  if (!bcrypt.compareSync(password, getUserByEmail(email).password)) {
+    const templateVars = {
+      status: 403,
+      message: "Invalid password",
+      user: users[req.cookies.user_id]
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
 
   res.cookie("user_id", user.id);
@@ -202,7 +215,7 @@ app.post("/register", (req, res) => {
   const user = {
     id,
     email: req.body.email,
-    password: req.body.password
+    password: bcrypt.hashSync(password, 10)
   };
   if (!email || !password) {
     return res.status(401).send("Empty user and/or password");
