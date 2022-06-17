@@ -13,8 +13,10 @@
   </head>
 
   <body>
+    <header>
       <%- include ('./partials/_header') %>
-    <main style="margin: 1em;">
+    </header>
+    <main style="margin:1em; text-align: center">
       <h3>Error: <%= status %></h3>
       <div class="alert alert-danger" role="alert">
       <p> <%= message %></p>

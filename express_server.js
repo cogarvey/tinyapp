@@ -1,11 +1,12 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-var cookieSession = require('cookie-session')
+var cookieSession = require('cookie-session');
 const bodyParser = require("body-parser");
 const res = require("express/lib/response");
 const req = require("express/lib/request");
 const bcrypt = require('bcryptjs');
+const { getUser, generateRandomString, urlsForUser } = require("./helper-functions");
 app.set("view engine", "ejs");
 app.use(cookieSession({
   name: 'session',
@@ -19,7 +20,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
-    userID: "aJ48lW"
+    userID: "userRandomID"
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
@@ -31,12 +32,12 @@ const usersDatabase = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: bcrypt.hashSync("password", 10)
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: bcrypt.hashSync("password", 10)
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   }
 };
 
@@ -45,32 +46,6 @@ const usersDatabase = {
 
 // user 2
 // password: "dishwasher-funk"
-
-function generateRandomString() {
-  return Math.random().toString(36).substring(7);
-};
-
-const getUser = (email, usersDatabase) => {
-  for (let user in usersDatabase) {
-    if (usersDatabase[user].email === email) {
-      return usersDatabase[user];
-    }
-  }
-  return false;
-};
-
-
-const urlsForUser = (id => {
-  let userUrls = {};
-  for (let shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userUrls[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return userUrls;
-});
-
-
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -91,7 +66,7 @@ app.get("/urls", (req, res) => {
     };
     return res.status(401).render("urls_error", templateVars);
   } else {
-    let userURLs = urlsForUser(user_id)
+    let userURLs = urlsForUser(user_id, urlDatabase);
     const templateVars = {
       user: usersDatabase[req.session.user_id],
       urls: userURLs
@@ -118,7 +93,6 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-
   let user_id = req.session.user_id;
   if (!user_id) {
     const templateVars = {
@@ -134,7 +108,6 @@ app.get("/urls/:shortURL", (req, res) => {
       longURL: urlDatabase[shortURL].longURL,
       user: usersDatabase[req.session.user_id]
     };
-    // console.log("*****", urlDatabase);
     res.render("urls_show", templateVars);
   }
 });
@@ -142,7 +115,12 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get('/u/:shortURL', (req, res) => {
   let shortURL = req.params.shortURL;
   if (!urlDatabase[shortURL]) {
-    return res.status(400).send(`${shortURL} does not exist`);
+    const templateVars = {
+      status: 400,
+      message: `${shortURL} does not exist`,
+      user: null
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
   let longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
@@ -155,7 +133,12 @@ app.post("/urls/:shortURL/delete", (req, res) => {
     delete urlDatabase[req.params.shortURL];
     return res.redirect('/urls');
   } else {
-    return res.status(401).send(`You do not have access to ${shortURL}.`);
+    const templateVars = {
+      status: 400,
+      message: `You do not have access to ${shortURL}`,
+      user: usersDatabase[req.session.user_id]
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
 });
 
@@ -223,10 +206,20 @@ app.post("/register", (req, res) => {
     password: bcrypt.hashSync(password, 10)
   };
   if (!email || !password) {
-    return res.status(401).send("Empty user and/or password");
+    const templateVars = {
+      status: 401,
+      message: "Empty user and/or password",
+      user: null
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
   if (getUser(email, usersDatabase)) {
-    return res.status(409).send("Email already exists");
+    const templateVars = {
+      status: 409,
+      message: "Email already exists",
+      user: null
+    };
+    return res.status(401).render("urls_error", templateVars);
   }
   usersDatabase[id] = user;
   req.session.user_id = user.id;
@@ -241,3 +234,5 @@ app.get("/hello", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}  !`);
 });
+
+
