@@ -17,6 +17,7 @@ app.use(cookieSession({
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
+// Example URLs:
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -28,6 +29,7 @@ const urlDatabase = {
   },
 };
 
+// Example users:
 const usersDatabase = {
   "userRandomID": {
     id: "userRandomID",
@@ -41,11 +43,6 @@ const usersDatabase = {
   }
 };
 
-// user 1
-// password: "purple-monkey-dinosaur"
-
-// user 2
-// password: "dishwasher-funk"
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -56,6 +53,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 
+//Homepage:
 app.get("/urls", (req, res) => {
   let user_id = req.session.user_id;
   if (!user_id) {
@@ -92,24 +90,43 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
+//SHORT URL PAGE
 app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
   let user_id = req.session.user_id;
-  if (!user_id) {
+  let user = usersDatabase[user_id]
+  let userURLs = urlsForUser(user_id, urlDatabase);
+  if (!urlDatabase[req.params.shortURL]) {
     const templateVars = {
-      status: 400,
-      message: "Must be logged in to access",
+      status: 404,
+      message: "Page does not exist",
       user: null
     };
-    return res.status(401).render("urls_error", templateVars);
-  } else {
-    const shortURL = req.params.shortURL;
+    return res.status(404).render("urls_error", templateVars);
+  }
+  if (!user_id || !userURLs[shortURL]) {
+    const templateVars = {
+      status: 403,
+      message: "You do not have access to this TinyURL",
+      user: null
+    };
+    return res.status(403).render("urls_error", templateVars);
+  } 
     const templateVars = {
       shortURL: shortURL,
       longURL: urlDatabase[shortURL].longURL,
       user: usersDatabase[req.session.user_id]
     };
     res.render("urls_show", templateVars);
-  }
+});
+
+app.post("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
+  // console.log(urlDatabase);
+  urlDatabase[shortURL].longURL = longURL;
+  // console.log(urlDatabase);
+  res.redirect('/urls');
 });
 
 app.get('/u/:shortURL', (req, res) => {
@@ -142,15 +159,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   }
 });
 
-//SHORT URL PAGE
-app.post("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const longURL = req.body.longURL;
-  // console.log(urlDatabase);
-  urlDatabase[shortURL].longURL = longURL;
-  // console.log(urlDatabase);
-  res.redirect('/urls');
-});
 
 // LOG INS
 app.get("/login", (req, res) => {
