@@ -1,48 +1,52 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-var cookieSession = require('cookie-session');
+var cookieSession = require("cookie-session");
 const bodyParser = require("body-parser");
 const res = require("express/lib/response");
 const req = require("express/lib/request");
-const bcrypt = require('bcryptjs');
-const { getUser, generateRandomString, urlsForUser } = require("./helper-functions");
+const bcrypt = require("bcryptjs");
+const {
+  getUser,
+  generateRandomString,
+  urlsForUser,
+} = require("./helper-functions");
 app.set("view engine", "ejs");
-app.use(cookieSession({
-  name: 'session',
-  keys: ["fbdsakls"],
-  // Cookie Options
-  maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}));
+app.use(
+  cookieSession({
+    name: "session",
+    keys: ["fbdsakls"],
+    // Cookie Options
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  })
+);
 app.use(bodyParser.urlencoded({ extended: true }));
-
 
 // Example URLs:
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
-    userID: "userRandomID"
+    userID: "userRandomID",
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
-    userID: "aJ48lW"
+    userID: "aJ48lW",
   },
 };
 
 // Example users:
 const usersDatabase = {
-  "userRandomID": {
+  userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
-  "user2RandomID": {
+  user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: bcrypt.hashSync("dishwasher-funk", 10)
-  }
+    password: bcrypt.hashSync("dishwasher-funk", 10),
+  },
 };
-
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -52,7 +56,6 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-
 //Homepage:
 app.get("/urls", (req, res) => {
   let user_id = req.session.user_id;
@@ -60,14 +63,14 @@ app.get("/urls", (req, res) => {
     const templateVars = {
       status: 401,
       message: "Please log in or create account to access",
-      user: null
+      user: null,
     };
     return res.status(401).render("urls_error", templateVars);
   } else {
     let userURLs = urlsForUser(user_id, urlDatabase);
     const templateVars = {
       user: usersDatabase[req.session.user_id],
-      urls: userURLs
+      urls: userURLs,
     };
     return res.render("urls_index", templateVars);
   }
@@ -75,7 +78,10 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.session.user_id };
+  urlDatabase[shortURL] = {
+    longURL: req.body.longURL,
+    userID: req.session.user_id,
+  };
   res.redirect(`/urls/${shortURL}`);
 });
 
@@ -85,7 +91,7 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
   }
   const templateVars = {
-    user: usersDatabase[req.session.user_id]
+    user: usersDatabase[req.session.user_id],
   };
   res.render("urls_new", templateVars);
 });
@@ -94,13 +100,13 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   let user_id = req.session.user_id;
-  let user = usersDatabase[user_id]
+  let user = usersDatabase[user_id];
   let userURLs = urlsForUser(user_id, urlDatabase);
   if (!urlDatabase[req.params.shortURL]) {
     const templateVars = {
       status: 404,
       message: "Page does not exist",
-      user: null
+      user: null,
     };
     return res.status(404).render("urls_error", templateVars);
   }
@@ -108,16 +114,16 @@ app.get("/urls/:shortURL", (req, res) => {
     const templateVars = {
       status: 403,
       message: "You do not have access to this TinyURL",
-      user: null
+      user: null,
     };
     return res.status(403).render("urls_error", templateVars);
-  } 
-    const templateVars = {
-      shortURL: shortURL,
-      longURL: urlDatabase[shortURL].longURL,
-      user: usersDatabase[req.session.user_id]
-    };
-    res.render("urls_show", templateVars);
+  }
+  const templateVars = {
+    shortURL: shortURL,
+    longURL: urlDatabase[shortURL].longURL,
+    user: usersDatabase[req.session.user_id],
+  };
+  res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:shortURL", (req, res) => {
@@ -126,16 +132,16 @@ app.post("/urls/:shortURL", (req, res) => {
   // console.log(urlDatabase);
   urlDatabase[shortURL].longURL = longURL;
   // console.log(urlDatabase);
-  res.redirect('/urls');
+  res.redirect("/urls");
 });
 
-app.get('/u/:shortURL', (req, res) => {
+app.get("/u/:shortURL", (req, res) => {
   let shortURL = req.params.shortURL;
   if (!urlDatabase[shortURL]) {
     const templateVars = {
       status: 400,
       message: `${shortURL} does not exist`,
-      user: null
+      user: null,
     };
     return res.status(401).render("urls_error", templateVars);
   }
@@ -148,22 +154,21 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   if (req.session.user_id === urlDatabase[shortURL].userID) {
     delete urlDatabase[req.params.shortURL];
-    return res.redirect('/urls');
+    return res.redirect("/urls");
   } else {
     const templateVars = {
       status: 400,
       message: `You do not have access to ${shortURL}`,
-      user: usersDatabase[req.session.user_id]
+      user: usersDatabase[req.session.user_id],
     };
     return res.status(401).render("urls_error", templateVars);
   }
 });
 
-
 // LOG INS
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: usersDatabase[req.session.user_id]
+    user: usersDatabase[req.session.user_id],
   };
   res.render("urls_login", templateVars);
 });
@@ -175,7 +180,7 @@ app.post("/login", (req, res) => {
     const templateVars = {
       status: 401,
       message: "Invalid Email",
-      user: usersDatabase[req.session.user_id]
+      user: usersDatabase[req.session.user_id],
     };
     return res.status(401).render("urls_error", templateVars);
   }
@@ -183,24 +188,24 @@ app.post("/login", (req, res) => {
     const templateVars = {
       status: 403,
       message: "Invalid password",
-      user: null
+      user: null,
     };
     return res.status(401).render("urls_error", templateVars);
   }
   req.session.user_id = user.id;
-  res.redirect('/urls');
+  res.redirect("/urls");
 });
 
 // LOG OUT
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect('/urls');
+  res.redirect("/urls");
 });
 
 // REGISTER OR CREATE ACCOUNT
 app.get("/register", (req, res) => {
   const templateVars = {
-    user: usersDatabase[req.session.user_id]
+    user: usersDatabase[req.session.user_id],
   };
   res.render("urls_register", templateVars);
 });
@@ -211,13 +216,13 @@ app.post("/register", (req, res) => {
   const user = {
     id,
     email: req.body.email,
-    password: bcrypt.hashSync(password, 10)
+    password: bcrypt.hashSync(password, 10),
   };
   if (!email || !password) {
     const templateVars = {
       status: 401,
       message: "Empty user and/or password",
-      user: null
+      user: null,
     };
     return res.status(401).render("urls_error", templateVars);
   }
@@ -225,15 +230,14 @@ app.post("/register", (req, res) => {
     const templateVars = {
       status: 409,
       message: "Email already exists",
-      user: null
+      user: null,
     };
     return res.status(401).render("urls_error", templateVars);
   }
   usersDatabase[id] = user;
   req.session.user_id = user.id;
-  res.redirect('/urls');
+  res.redirect("/urls");
 });
-
 
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
@@ -242,5 +246,3 @@ app.get("/hello", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}  !`);
 });
-
-

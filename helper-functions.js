@@ -1,4 +1,3 @@
-
 const getUser = (email, usersDatabase) => {
   for (let user in usersDatabase) {
     if (usersDatabase[user].email === email) {
@@ -10,8 +9,7 @@ const getUser = (email, usersDatabase) => {
 
 function generateRandomString() {
   return Math.random().toString(36).substring(7);
-};
-
+}
 
 const urlsForUser = (id, urlDatabase) => {
   let userUrls = {};
@@ -23,5 +21,4 @@ const urlsForUser = (id, urlDatabase) => {
   return userUrls;
 };
 
-
-module.exports = { getUser, generateRandomString, urlsForUser }
+module.exports = { getUser, generateRandomString, urlsForUser };
